@@ -1,25 +1,39 @@
 -- Read Inputs from File
-function readFile(fileName)
+function readInputFile(fileName, stepNum)
 	local file = io.open(fileName, 'r')
 	local inputTable = {}
 	if file ~= nil then
 		io.input(file)
 		local lineNum = 1
+		local currentStep = 0
 		local value = false
 		for line in file:lines() do
-			if line == 'false' then value = false else value = true end
-			if lineNum == 1 then inputTable['A'] = value
-			elseif lineNum == 2 then inputTable['up'] = value
-			elseif lineNum == 3 then inputTable['left'] = value
-			elseif lineNum == 4 then inputTable['B'] = value
-			elseif lineNum == 5 then inputTable['select'] = value
-			elseif lineNum == 6 then inputTable['right'] = value
-			elseif lineNum == 7 then inputTable['down'] = value
-			elseif lineNum == 8 then inputTable['start'] = value end
+			if lineNum == 1 then
+				currentStep = tonumber(line)
+				if currentStep < stepNum then
+					return nil
+			elseif lineNum < 10 then
+				if line == 'false' then value = false else value = true end
+				elseif lineNum == 2 then inputTable['A'] = value
+				elseif lineNum == 3 then inputTable['up'] = value
+				elseif lineNum == 4 then inputTable['left'] = value
+				elseif lineNum == 5 then inputTable['B'] = value
+				elseif lineNum == 6 then inputTable['select'] = value
+				elseif lineNum == 7 then inputTable['right'] = value
+				elseif lineNum == 8 then inputTable['down'] = value
+				elseif lineNum == 9 then inputTable['start'] = value end
+			else
+				if lineNum == 10 then commandTable['state'] = line 
+				elseif lineNum == 11 then commandTable['rom'] = line end
+			end
 			lineNum = lineNum + 1
 		end
+		io.close(file)
+	else
+		print('Nil Input File!')
 	end
-	return inputTable
+	
+	return {commandTable, inputTable}
 end
 
 -- Write to File
@@ -92,47 +106,81 @@ end
 -- Create a table representing Game Variables
 function getMemoryValues()
 	local rTable = {}
+	
 	-- GAME ID
 	local game_id = memoryConcat("", 0xFFE0, 16)
 	table.insert(rTable, 'GAME_ID')
 	table.insert(rTable, game_id)
+	
 	-- GAME NAME
 	local game_name = "Unknown"
-	if game_id = "ffffffffffffffffffffffffffffffff" then
+	if game_id == "ffffffffffffffffffffffffffffffff" then
 		game_name = "Pac-Man"
-	elseif game_id = "ffffffffffffffffff4d4554524f4944" then
+	elseif game_id == "ffffffffffffffffff4d4554524f4944" then
 		game_name = "Metroid"
-	elseif game_id = "1e1f1f1e1d1c1a181614151616171718" then
+	elseif game_id == "1e1f1f1e1d1c1a181614151616171718" then
 		game_name = "Super Mario Bros."
+	elseif game_id == "025050500250025656560256028554C4" then
+		game_name = "Balloon Fight"
 	end
 	table.insert(rTable, 'GAME_NAME')
 	table.insert(rTable, game_name)
+	
 	-- SCORE
-	local score = memorySum(0, 100000, 0x0240, 5, .1)
+	local score = -1
+	if game_name == "Pac-Man" then
+		score = memorySum(0, 100000, 0x0240, 5, .1)
+	end
 	table.insert(rTable, 'SCORE')
 	table.insert(rTable, score)
+	
+	-- GAME COMPLETION
+	local complete = false
+	
 	-- LIVES
 	local lives = 0
+	
 	-- PLAYER X
 	local px = 0
+	
 	-- PLAYER Y
 	local pxy = 0
 	return rTable
 end
 
 -- Initialize Variables
+-- How many frames have been advanced
+timeStep = 0
+-- Which Controller to Write to
 controllerPort = 1
 
 -- Main Loop
 while true do
-	-- Read input data from file, and apply it
-	input = readFile('input.txt')
-	joypad.set(controllerPort, input)
+	-- Read input data from file
+	inputTable = readInputFile('input.txt', timeStep)
+	
+	-- Check to see if the Input File has been updated
+	if inputTable == nil then
+		-- Input File not updated
+	else
+		-- Apply Joypad Input, Advance Time Step,
+		joypad.set(controllerPort, inputTable[2])
+		timeStep = timeStep + 1
+		-- Load State and/or ROM if specified
+		if (inputTable[1])['rom'] ~= "none" then
+			--os.execute()
+			print("Load ROM: " .. (inputTable[1])['rom'])
+		end
+		if (inputTable[1])['state'] ~= "none" then
+			savestate.load(savestate.create(tonumber((inputTable[1])['state'])))
+			print("Load State: " .. (inputTable[1])['state'])
+		end
+	end
 	
 	-- Read the screen's pixels and write to file
 	writeFile('screen.txt', getScreenTable(), 4)
 	writeFile('variables.txt', getMemoryValues(), 2)
-	
-	-- Advance the frame
+
+	-- Advance the Frame
 	emu.frameadvance()
 end
