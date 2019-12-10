@@ -10,7 +10,7 @@ function readInputFile(fileName, stepNum)
 		for line in file:lines() do
 			if lineNum == 1 then
 				currentStep = tonumber(line)
-				if currentStep < stepNum then
+				if currentStep <= stepNum then
 					return nil
 			elseif lineNum < 10 then
 				if line == 'false' then value = false else value = true end
@@ -41,6 +41,7 @@ function writeFile(fileName, writeTable, numFields)
 	local file = io.open(fileName, 'w')
 	if file ~= nil then
 		io.output(file)
+		io.write(currentStep .. '\n')
 		for key,value in pairs(writeTable) do
 			io.write(value .. ' ')
 			if (key%numFields) == 0 then
@@ -134,8 +135,13 @@ function getMemoryValues()
 	table.insert(rTable, 'SCORE')
 	table.insert(rTable, score)
 	
-	-- GAME COMPLETION
-	local complete = false
+	-- GAME OVER
+	table.insert(rTable, 'GAME_OVER')
+	table.insert(rTable, 'false')
+	
+	-- VICTORY
+	table.insert(rTable, 'VICTORY')
+	table.insert(rTable, 'false')
 	
 	-- LIVES
 	local lives = 0
