@@ -3,8 +3,159 @@ import numpy as np
 import matplotlib.pyplot as plt
 import itertools
 import os
+import time
 
+class FceuxNesEmulatorEnvironment:
+    def __init__(self, rom='none', save_state='none', initial_step=0):
+        # Which ROM is currently being emulated?
+        self.game_name = '***'
+        self.game_id = '-1'
+        # How many steps have been made? Should the environment end after a number of steps?
+        self.time_step = 0
+        self.max_step = 1000
+        # What is the reward and penalty for each step, failure, and success?
+        self.transaction_penalty = -1.0
+        self.fail_penalty = -250.0
+        self.goal_reward = 0.0
+        self.score_multiplier = 1.0
+        self.timeout_penalty = 0.0
+        # Specifies which ROM and/or save state should be loaded next frame.
+        self.load_rom = rom
+        self.load_state = save_state
+        # Repeatedly used action settings
+        self.no_action = ['false', 'false', 'false', 'false', 'false', 'false', 'false', 'false']
+        # The core features of the current step, used by the NN
+        self.action = None
+        self.state = None
+        self.reward = 0
+        # Used as a timestamp to validate text files
+        self.validation_step = initial_step
+        # Load specified state & action
+        self.write_action()
+        # Amount of time to delay between each check of a txt File
+        self.sleep_amount = 0.1
+        # Up-to-date In-Game Score (Points)
+        self.score = 0
 
+    def reset(self, save_state='1'):
+        # Reset State and return the Initial State
+        self.action = self.no_action
+        self.load_rom = 'none'
+        self.load_state = save_state
+        return self.write_action()
+
+    def step(self, action):
+        # Perform Action and Get State
+        self.action = action
+        state = self.write_action()
+        # Get Reward / Done Status / Info
+        reward, done = self.read_rewards()
+        info = ""
+        return state, reward, done, info
+
+    def read_state(self):
+        updated = False
+        # Wait until File is Updated
+        while not updated:
+            # Open the File
+            file = open("screen.txt", "r")
+            # Make List out of Lines of File
+            lines = file.readlines()
+            if int(lines[0]) <= self.validation_step:
+                updated = True
+            else:
+                file.close()
+                time.sleep(self.sleep_amount)
+        # Loop through each Line, and format
+        line_index = 0
+        screen = []
+        for line in lines:
+            if line_index != 0:
+                screen.append(line.split())
+            line_index += 1
+        # Close the File
+        file.close()
+        # Update and Return current State
+        self.state = screen
+        return screen
+
+    def write_action(self):
+        # Open the File
+        file = open("input.txt", "w")
+        # Prepare Lines of File
+        contents = self.action
+        contents.append(self.load_state)
+        contents.append(self.load_rom)
+        # Create File Contents String
+        content_string = self.validation_step
+        for line in contents:
+            content_string = line + '\n'
+        # Write to the file
+        file.write(content_string)
+        # Close the File
+        file.close()
+        # Reset Action Variables
+        self.load_rom = 'none'
+        self.load_state = 'none'
+        self.action = None
+        # Increment Validation Step
+        self.validation_step += 1
+        # Return the New State (After the Action is Performed)
+        return self.read_state()
+
+    def read_rewards(self):
+        updated = False
+        # Wait until File is Updated
+        while not updated:
+            # Open the File
+            file = open("variables.txt", "r")
+            # Make List out of Lines of File
+            lines = file.readlines()
+            if int(lines[0]) <= self.validation_step:
+                updated = True
+            else:
+                file.close()
+                time.sleep(self.sleep_amount)
+        # Set Default Return Values
+        reward = 0
+        done = False
+        # Save last Frame's Score
+        previous_score = self.score
+        # Loop through each Line, and check contents
+        line_index = 0
+        for line in lines:
+            if line_index != 0:
+                elements = line.split()
+                if elements[0] == 'SCORE':
+                    self.score = int(elements[1])
+                elif elements[0] == 'GAME_ID':
+                    self.game_id = elements[1]
+                elif elements[0] == 'GAME_NAME':
+                    self.game_name = elements[1]
+                elif elements[0] == 'GAME_OVER':
+                    if elements[1] == 'true':
+                        done = True
+                        reward += self.fail_penalty
+                elif elements[0] == 'VICTORY':
+                    if elements[1] == 'true':
+                        done = True
+                        reward += self.goal_penalty
+            line_index += 1
+        # Close the File
+        file.close()
+        # Apply reward based on Score Increase
+        reward += (self.score - previous_score) * self.score_multiplier
+        # Apply Transactional Penalty
+        reward += self.transaction_penalty
+        # Check for Timeout
+        if not done and self.time_step >= self.max_step:
+            done = True
+            reward += self.timeout_penalty
+        # Set the Reward and Return
+        self.reward = reward
+        return reward, done
+    
+    
 class CliffWalkingEnv():
     # Cliff walk environment with OpenAI Gym like interface
     def __init__(self, width=10, height=6):
