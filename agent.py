@@ -30,12 +30,13 @@ class FceuxNesEmulatorEnvironment:
         self.reward = 0
         # Used as a timestamp to validate text files
         self.validation_step = initial_step
-        # Load specified state & action
-        self.write_action()
         # Amount of time to delay between each check of a txt File
         self.sleep_amount = 0.1
         # Up-to-date In-Game Score (Points)
         self.score = 0
+        # Load specified state & action
+        #self.write_action()
+
 
     def reset(self, save_state='1'):
         # Reset State and return the Initial State
@@ -61,7 +62,8 @@ class FceuxNesEmulatorEnvironment:
             file = open("screen.txt", "r")
             # Make List out of Lines of File
             lines = file.readlines()
-            if int(lines[0]) <= self.validation_step:
+            print(self.validation_step)
+            if int(lines[0]) >= self.validation_step:
                 updated = True
             else:
                 file.close()
@@ -90,7 +92,7 @@ class FceuxNesEmulatorEnvironment:
         file.close()
         # Update and Return current State
         # Convert pixel data into tensor that will be accepted by Conv2d layer
-        self.state = torch.tensor(screen).float().reshape(4, 28, 32).unsqueeze(0)
+        self.state = torch.FloatTensor(screen).reshape(4, 28, 32).unsqueeze(0)
         return self.state
 
     def write_action(self):
@@ -101,9 +103,9 @@ class FceuxNesEmulatorEnvironment:
         contents.append(self.load_state)
         contents.append(self.load_rom)
         # Create File Contents String
-        content_string = self.validation_step
+        content_string = str(self.validation_step) + '\n'
         for line in contents:
-            content_string = line + '\n'
+            content_string = content_string + line + '\n'
         # Write to the file
         file.write(content_string)
         # Close the File
@@ -111,7 +113,7 @@ class FceuxNesEmulatorEnvironment:
         # Reset Action Variables
         self.load_rom = 'none'
         self.load_state = 'none'
-        self.action = None
+        self.action = [] # None
         # Increment Validation Step
         self.validation_step += 1
         # Return the New State (After the Action is Performed)
@@ -125,7 +127,7 @@ class FceuxNesEmulatorEnvironment:
             file = open("variables.txt", "r")
             # Make List out of Lines of File
             lines = file.readlines()
-            if int(lines[0]) <= self.validation_step:
+            if int(lines[0]) > self.validation_step:
                 updated = True
             else:
                 file.close()
@@ -266,7 +268,7 @@ class PolicyEstimator(torch.nn.Module):
         state = state.view(-1, 64*8*10)
 
         state = torch.relu(self.linear1(state))
-        action = torch.tanh(self.linear2(state))
+        action = torch.sigmoid(self.linear2(state))
         return action
 
 
@@ -278,20 +280,29 @@ class ValueEstimator(torch.nn.Module):
         self.state_size = 6*10
         self.h1_size = 32
 
-        self.linear1 = torch.nn.Linear(self.state_size, self.h1_size)
-        self.linear2 = torch.nn.Linear(self.h1_size, 1)
+        self.conv1 = torch.nn.Conv2d(4, 32, kernel_size=4, stride=2)
+        self.conv2 = torch.nn.Conv2d(32, 64, kernel_size=4, stride=1)
+        self.conv3 = torch.nn.Conv2d(64, 64, kernel_size=3, stride=1)
+
+        self.linear1 = torch.nn.Linear(64 * 8 * 10, 512)
+        self.linear2 = torch.nn.Linear(512, 1)
 
     def forward(self, state):
-        state_onehot =torch.zeros(self.state_size)
-        state_onehot.scatter_(0, state, 1.0)
-        h1 = self.linear1(state_onehot).clamp(min=0)
+        state = torch.relu(self.conv1(state))
+        state = torch.relu(self.conv2(state))
+        state = torch.relu(self.conv3(state))
+
+        state = state.view(-1, 64 * 8 * 10)
+
+        #state = torch.relu(self.linear1(state))
+        h1 = self.linear1(state).clamp(min=0)
         value = self.linear2(h1)
         return value
 
 def toAction(actionProp):
     nextAction = []
-    for est in actionProp[0]:
-        if est > 0:
+    for est in actionProp:
+        if est > 0.5:
             nextAction.append('true')
         else:
             nextAction.append('false')
@@ -425,10 +436,12 @@ def actor_critic(device="cpu"):
             actions = []
             for t in itertools.count():
                 action_probs = policy_estimator(state)
+                print(action_probs)
                 if np.random.uniform() < random_chance:
-                    action = torch.FloatTensor(8).uniform_(-1, 1).detach()
+                    action = torch.FloatTensor(8).uniform_(0, 1).detach()
                 else:
-                    action = action_probs
+                    action = action_probs[0]
+                print(action)
                 true_act = toAction(action)
                 next_state, reward, done, _ = fenv.step(true_act)
                 rewards.append(reward)
@@ -448,7 +461,13 @@ def actor_critic(device="cpu"):
                 value_loss.backward()
                 value_optimizer.step()
 
-                action_prob = action_probs[action]
+                action_prob = 1.0
+                for act in action_probs[0]:
+                    if act > 0.5:
+                        action_prob = action_prob * act
+                    else:
+                        action_prob = action_prob * (1 - act)
+                #action_prob = action_probs[action]
                 policy_loss = -torch.log(action_prob) * advance.detach()
                 # print(policy_loss)
                 policy_optimizer.zero_grad()
@@ -525,9 +544,9 @@ def draw_policy(name, policy_model, value_model, device="cpu"):
 
 if __name__ == "__main__":
     #reinforce()
-    fenv = FceuxNesEmulatorEnvironment()
-    pnet = PolicyEstimator()
-    print(fenv.read_state())
-    print(torch.FloatTensor(8).uniform_(-1, 1).detach())
-    print(toAction(pnet(fenv.read_state())))
-    #actor_critic()
+    #fenv = FceuxNesEmulatorEnvironment()
+    #pnet = PolicyEstimator()
+    #print(fenv.read_state())
+    #print(torch.FloatTensor(8).uniform_(0, 1).detach())
+    #print(toAction(pnet(fenv.read_state())))
+    actor_critic()

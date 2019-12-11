@@ -2,6 +2,7 @@
 function readInputFile(fileName, stepNum)
 	local file = io.open(fileName, 'r')
 	local inputTable = {}
+	local commandTable = {}
 	if file ~= nil then
 		io.input(file)
 		local lineNum = 1
@@ -10,7 +11,7 @@ function readInputFile(fileName, stepNum)
 		for line in file:lines() do
 			if lineNum == 1 then
 				currentStep = tonumber(line)
-				if currentStep <= stepNum then
+				if currentStep < stepNum then
 					return nil
 			elseif lineNum < 10 then
 				if line == 'false' then value = false else value = true end
