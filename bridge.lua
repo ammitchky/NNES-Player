@@ -42,6 +42,7 @@ function writeFile(fileName, writeTable, numFields)
 	if file ~= nil then
 		io.output(file)
 		io.write(currentStep .. '\n')
+		io.write(currentStep .. '\n')
 		for key,value in pairs(writeTable) do
 			io.write(value .. ' ')
 			if (key%numFields) == 0 then
