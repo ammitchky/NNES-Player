@@ -25,7 +25,7 @@ class FceuxNesEmulatorEnvironment:
         # Repeatedly used action settings
         self.no_action = ['false', 'false', 'false', 'false', 'false', 'false', 'false', 'false']
         # The core features of the current step, used by the NN
-        self.action = None
+        self.action = []
         self.state = None
         self.reward = 0
         # Used as a timestamp to validate text files
@@ -69,15 +69,29 @@ class FceuxNesEmulatorEnvironment:
         # Loop through each Line, and format
         line_index = 0
         screen = []
+        scr_r = []
+        scr_g = []
+        scr_b = []
+        scr_x = []
         for line in lines:
             if line_index != 0:
-                screen.append(line.split())
+                value = line.split()
+                # broke up input into 4 different channels
+                scr_r.append(int(value[0]))
+                scr_g.append(int(value[1]))
+                scr_b.append(int(value[2]))
+                scr_x.append(int(value[3]))
             line_index += 1
+        screen.append(scr_r)
+        screen.append(scr_g)
+        screen.append(scr_b)
+        screen.append(scr_x)
         # Close the File
         file.close()
         # Update and Return current State
-        self.state = screen
-        return screen
+        # Convert pixel data into tensor that will be accepted by Conv2d layer
+        self.state = torch.tensor(screen).float().reshape(4, 28, 32).unsqueeze(0)
+        return self.state
 
     def write_action(self):
         # Open the File
@@ -234,17 +248,25 @@ class PolicyEstimator(torch.nn.Module):
         self.device = device
         self.dtype = dtype
         self.state_size = 6*10
-        self.action_size = 4
+        self.action_size = 8
         self.h1_size = 32
 
-        self.linear1 = torch.nn.Linear(self.state_size, self.h1_size)
-        self.linear2 = torch.nn.Linear(self.h1_size, self.action_size)
+        self.conv1 = torch.nn.Conv2d(4, 32, kernel_size=4, stride=2)
+        self.conv2 = torch.nn.Conv2d(32, 64, kernel_size=4, stride=1)
+        self.conv3 = torch.nn.Conv2d(64, 64, kernel_size=3, stride=1)
+
+        self.linear1 = torch.nn.Linear(64*8*10, 512)
+        self.linear2 = torch.nn.Linear(512, self.action_size)
 
     def forward(self, state):
-        state_onehot = torch.zeros(self.state_size)
-        state_onehot.scatter_(0, state, 1.0)
-        h1 = self.linear1(state_onehot)
-        action = self.linear2(h1).clamp(min=0.01)
+        state = torch.relu(self.conv1(state))
+        state = torch.relu(self.conv2(state))
+        state = torch.relu(self.conv3(state))
+
+        state = state.view(-1, 64*8*10)
+
+        state = torch.relu(self.linear1(state))
+        action = torch.tanh(self.linear2(state))
         return action
 
 
@@ -494,4 +516,8 @@ def draw_policy(name, policy_model, value_model, device="cpu"):
 
 if __name__ == "__main__":
     #reinforce()
-    actor_critic()
+    fenv = FceuxNesEmulatorEnvironment()
+    pnet = PolicyEstimator()
+    print(fenv.read_state())
+    print(pnet(fenv.read_state()))
+    #actor_critic()
