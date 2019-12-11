@@ -288,6 +288,14 @@ class ValueEstimator(torch.nn.Module):
         value = self.linear2(h1)
         return value
 
+def toAction(actionProp):
+    nextAction = []
+    for est in actionProp[0]:
+        if est > 0:
+            nextAction.append('true')
+        else:
+            nextAction.append('false')
+    return nextAction
 
 def reinforce(device="cpu"):
     discount_factor = 0.7
@@ -391,7 +399,7 @@ def actor_critic(device="cpu"):
     save_path = "actor_critic/"
     train = True
 
-    env = CliffWalkingEnv()
+    fenv = FceuxNesEmulatorEnvironment()
     policy_estimator = PolicyEstimator()
     value_estimator = ValueEstimator()
 
@@ -409,28 +417,29 @@ def actor_critic(device="cpu"):
         avg_reward = 0
         avg_length = 0
         for i in range(200000):
-            state = env.reset()
+            state = fenv.reset()
             episode_reward = 0.0
             episode_length = 0
             rewards = []
             states = []
             actions = []
             for t in itertools.count():
-                action_probs = policy_estimator(torch.tensor(state, dtype=torch.long))
+                action_probs = policy_estimator(state)
                 if np.random.uniform() < random_chance:
-                    action = torch.tensor(np.random.randint(0, 4), dtype=torch.long).detach()
+                    action = torch.FloatTensor(8).uniform_(-1, 1).detach()
                 else:
-                    action = torch.multinomial(action_probs, 1).detach()
-                next_state, reward, done, _ = env.step(action)
+                    action = action_probs
+                true_act = toAction(action)
+                next_state, reward, done, _ = fenv.step(true_act)
                 rewards.append(reward)
                 states.append(state)
                 actions.append(action)
                 episode_reward += reward
                 episode_length = t
 
-                next_value = value_estimator(torch.tensor(next_state, dtype=torch.long))
+                next_value = value_estimator(next_state)
                 target_value = reward + discount_factor * next_value
-                predict_value = value_estimator(torch.tensor(state, dtype=torch.long))
+                predict_value = value_estimator(state)
 
                 advance = target_value.detach() - predict_value
 
@@ -519,5 +528,6 @@ if __name__ == "__main__":
     fenv = FceuxNesEmulatorEnvironment()
     pnet = PolicyEstimator()
     print(fenv.read_state())
-    print(pnet(fenv.read_state()))
+    print(torch.FloatTensor(8).uniform_(-1, 1).detach())
+    print(toAction(pnet(fenv.read_state())))
     #actor_critic()
