@@ -37,12 +37,11 @@ function readInputFile(fileName, stepNum)
 end
 
 -- Write to File
-function writeFile(fileName, writeTable, numFields)
+function writeFile(fileName, writeTable, numFields, stepNum)
 	local file = io.open(fileName, 'w')
 	if file ~= nil then
 		io.output(file)
-		io.write(currentStep .. '\n')
-		io.write(currentStep .. '\n')
+		io.write(stepNum .. '\n')
 		for key,value in pairs(writeTable) do
 			io.write(value .. ' ')
 			if (key%numFields) == 0 then
@@ -185,8 +184,8 @@ while true do
 	end
 	
 	-- Read the screen's pixels and write to file
-	writeFile('screen.txt', getScreenTable(), 4)
-	writeFile('variables.txt', getMemoryValues(), 2)
+	writeFile('screen.txt', getScreenTable(), 4, timeStep)
+	writeFile('variables.txt', getMemoryValues(), 2, timeStep)
 
 	-- Advance the Frame
 	emu.frameadvance()
