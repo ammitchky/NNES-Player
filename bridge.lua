@@ -218,7 +218,7 @@ while true do
 		-- Read the screen's pixels and write to file
 		print('Write to Files')
 		writeFile('ram.txt', RAMdump(), 1, timeStep)
-		writeFile('screen.txt', getScreenTable(), 4, timeStep)
+		--writeFile('screen.txt', getScreenTable(), 4, timeStep)
 		writeFile('variables.txt', getMemoryValues(), 2, timeStep)
 	end
 end
