@@ -15,7 +15,7 @@ class FceuxNesEmulatorEnvironment:
         self.game_id = '-1'
         # How many steps have been made? Should the environment end after a number of steps?
         self.time_step = 0
-        self.max_step = 1000
+        self.max_step = 500
         # What is the reward and penalty for each step, failure, and success?
         self.transaction_penalty = 0.0
         self.fail_penalty = -250.0
@@ -34,7 +34,7 @@ class FceuxNesEmulatorEnvironment:
         # Used as a timestamp to validate text files
         self.validation_step = initial_step
         # Amount of time to delay between each check of a txt File
-        self.sleep_amount = 0.01
+        self.sleep_amount = 0.05
         # Up-to-date In-Game Score (Points)
         self.score = 0
         # Load specified state & action
@@ -83,7 +83,7 @@ class FceuxNesEmulatorEnvironment:
                 else:
                     print("Not Updated")
                     file.close()
-                    time.sleep(self.sleep_amount)
+                    time.sleep(self.sleep_amount*3)
             else:
                 print("Not Updated")
                 time.sleep(self.sleep_amount)
@@ -417,7 +417,7 @@ def reinforce(device="cpu"):
 def actor_critic(device="cpu"):
     discount_factor = 0.7
     lr = 1e-3
-    random_chance = 0.04
+    random_chance = 0.05
     save_path = "actor_critic/"
     train = True
 
@@ -489,17 +489,16 @@ def actor_critic(device="cpu"):
 
             avg_reward += episode_reward
             avg_length += episode_length
-            if i % 200 == 0:
-                print("Average episode reward: {}".format(avg_reward/200))
-                print("Average episode length: {}".format(avg_length/200))
-                avg_reward = 0
-                avg_length = 0
 
-            if i % 2000 == 0:
-                print("Saving model...")
-                torch.save(policy_estimator.state_dict(), save_path + "policy_estimator")
-                torch.save(value_estimator.state_dict(), save_path + "value_estimator")
-                #draw_policy("actor_critic_{}".format(i), policy_estimator, value_estimator, device=device)
+            print("Average episode reward: {}".format(avg_reward/200))
+            print("Average episode length: {}".format(avg_length/200))
+            avg_reward = 0
+            avg_length = 0
+
+            print("Saving model...")
+            torch.save(policy_estimator.state_dict(), save_path + "policy_estimator")
+            torch.save(value_estimator.state_dict(), save_path + "value_estimator")
+            #draw_policy("actor_critic_{}".format(i), policy_estimator, value_estimator, device=device)
 
     #draw_policy("actor_critic_final", policy_estimator, value_estimator, device=device)
 
@@ -554,7 +553,7 @@ if __name__ == "__main__":
     subprocess.Popen([path + "/fceux-2.2.3-win32/fceux.exe"])
     # subprocess.Popen(['fceux C:/Users/Owner/Documents/GitHub/NNES-Player/roms/Pac-Man (U) [!].nes'])
     # subprocess.Popen('fceux -lua bridge.lua', info=False)
-    #file = open("ram.txt", "w")
+    #file = open("ram.txt", "w")ed
     #file.write('0')
     # Close the File
     #file.close()

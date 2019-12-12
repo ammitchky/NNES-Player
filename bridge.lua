@@ -216,6 +216,7 @@ end
 timeStep = 0
 -- Which Controller to Write to
 controllerPort = 1
+repeat_amount = 10
 
 -- Main Loop
 while true do
@@ -230,18 +231,28 @@ while true do
 		print(inputTable[2])
 		joypad.set(controllerPort, inputTable[2])
 		timeStep = timeStep + 1
+		load_op = false
 		-- Load State and/or ROM if specified
 		if (inputTable[1])['rom'] ~= "none" and (inputTable[1])['rom'] ~= nil then
 			--os.execute()
 			print("Load ROM: " .. (inputTable[1])['rom'])
+			load_op = true
 		end
 		if (inputTable[1])['state'] ~= "none" and (inputTable[1])['state'] ~= nil then
 			savestate.load(savestate.create(tonumber((inputTable[1])['state']) + 1))
 			print("Load State: " .. (inputTable[1])['state'])
+			load_op = true
 		end
 		
 		-- Advance the Frame
-		emu.frameadvance()
+		if load_op then
+			emu.frameadvance()
+		else
+			for i=1, repeat_amount do
+				emu.frameadvance()
+				joypad.set(controllerPort, inputTable[2])
+			end
+		end
 		
 		-- Read the screen's pixels and write to file
 		print('Write to Files')
