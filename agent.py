@@ -1,4 +1,5 @@
 import torch
+import torch.distributions.categorical as cat
 import numpy as np
 import matplotlib.pyplot as plt
 import itertools
@@ -40,6 +41,7 @@ class FceuxNesEmulatorEnvironment:
 
     def reset(self, save_state='1'):
         # Reset State and return the Initial State
+        self.time_step = 0
         self.action = self.no_action
         self.load_rom = 'none'
         self.load_state = save_state
@@ -49,6 +51,7 @@ class FceuxNesEmulatorEnvironment:
         # Perform Action and Get State
         self.action = action
         state = self.write_action()
+        self.time_step = self.time_step + 1
         # Get Reward / Done Status / Info
         reward, done = self.read_rewards()
         info = ""
@@ -59,11 +62,12 @@ class FceuxNesEmulatorEnvironment:
         # Wait until File is Updated
         while not updated:
             # Open the File
+            time.sleep(self.sleep_amount)
             file = open("ram.txt", "r")
             # Make List out of Lines of File
             lines = file.readlines()
             print(self.validation_step)
-            if lines is not False and int(lines[0]) >= self.validation_step:
+            if lines and int(lines[0]) >= self.validation_step:
                 updated = True
             else:
                 print("Not Updated")
@@ -112,10 +116,11 @@ class FceuxNesEmulatorEnvironment:
         # Wait until File is Updated
         while not updated:
             # Open the File
+            time.sleep(self.sleep_amount)
             file = open("variables.txt", "r")
             # Make List out of Lines of File
             lines = file.readlines()
-            if lines is not False and int(lines[0]) >= self.validation_step:
+            if lines and int(lines[0]) >= self.validation_step:
                 updated = True
             else:
                 file.close()
@@ -238,7 +243,7 @@ class PolicyEstimator(torch.nn.Module):
         self.device = device
         self.dtype = dtype
         self.state_size = 6*10
-        self.action_size = 8
+        self.action_size = 256
         self.h1_size = 32
 
         self.linear1 = torch.nn.Linear(2048, 1024)
@@ -251,7 +256,7 @@ class PolicyEstimator(torch.nn.Module):
         state = torch.relu(self.linear2(state))
         state = torch.relu(self.linear3(state))
 
-        action = torch.sigmoid(self.linear4(state))
+        action = (self.linear4(state).clamp(min=0.01))
         return action
 
 
@@ -278,13 +283,14 @@ class ValueEstimator(torch.nn.Module):
         return value
 
 def toAction(actionProp):
-    nextAction = []
-    for est in actionProp:
-        if est > 0.5:
-            nextAction.append('true')
+    nextAction = '{0:08b}'.format(int(actionProp.item()))
+    actToString = []
+    for est in nextAction:
+        if int(est) == 1:
+            actToString.append('true')
         else:
-            nextAction.append('false')
-    return nextAction
+            actToString.append('false')
+    return actToString
 
 def reinforce(device="cpu"):
     discount_factor = 0.7
@@ -414,12 +420,12 @@ def actor_critic(device="cpu"):
             actions = []
             for t in itertools.count():
                 action_probs = policy_estimator(state)
-                print(action_probs)
+                #print(action_probs)
                 if np.random.uniform() < random_chance:
-                    action = torch.FloatTensor(8).uniform_(0, 1).detach()
+                    action = torch.FloatTensor(1).random_(0, 255).detach()[0]
                 else:
-                    action = action_probs
-                print(action)
+                    action = cat.Categorical(action_probs).sample().detach()
+                #print(action)
                 true_act = toAction(action)
                 next_state, reward, done, _ = fenv.step(true_act)
                 rewards.append(reward)
@@ -439,14 +445,9 @@ def actor_critic(device="cpu"):
                 value_loss.backward()
                 value_optimizer.step()
 
-                action_prob = 1.0
-                for act in action_probs:
-                    if act > 0.5:
-                        action_prob = action_prob * act
-                    else:
-                        action_prob = action_prob * (1 - act)
+                m = cat.Categorical(action_probs)
                 #action_prob = action_probs[action]
-                policy_loss = -torch.log(action_prob) * advance.detach()
+                policy_loss = -m.log_prob(action) * advance.detach()
                 # print(policy_loss)
                 policy_optimizer.zero_grad()
                 policy_loss.backward()
@@ -533,6 +534,6 @@ if __name__ == "__main__":
     #fenv = FceuxNesEmulatorEnvironment()
     #pnet = PolicyEstimator()
     #print(fenv.read_state().shape)
-    #print(torch.FloatTensor(8).uniform_(0, 1).detach())
-    #print(toAction(pnet(fenv.read_state())))
+    #print(torch.Tensor(1).random_(0, 255).detach()[0])
+    #print(toAction(cat.Categorical(pnet(fenv.read_state())).sample().detach()))
     actor_critic()
