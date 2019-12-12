@@ -11,7 +11,7 @@ function readInputFile(fileName, stepNum)
 		for line in file:lines() do
 			if lineNum == 1 then
 				currentStep = tonumber(line)
-				if currentStep < stepNum then
+				if currentStep < stepNum and currentStep ~= 0 then
 					return nil
 				else
 					print('Updated File! Fetching Input (Step #' .. stepNum .. ')')
@@ -37,7 +37,7 @@ function readInputFile(fileName, stepNum)
 				elseif lineNum == 8 then 
 					inputTable['down'] = value
 				elseif lineNum == 9 then 
-					inputTable['start'] = value end
+					inputTable['start'] = false end
 			else
 				if lineNum == 10 then 
 					commandTable['state'] = line 
