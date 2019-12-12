@@ -35,7 +35,7 @@ class FceuxNesEmulatorEnvironment:
         # Up-to-date In-Game Score (Points)
         self.score = 0
         # Load specified state & action
-        self.write_action()
+        #self.write_action()
 
 
     def reset(self, save_state='1'):
@@ -59,7 +59,7 @@ class FceuxNesEmulatorEnvironment:
         # Wait until File is Updated
         while not updated:
             # Open the File
-            file = open("screen.txt", "r")
+            file = open("ram.txt", "r")
             # Make List out of Lines of File
             lines = file.readlines()
             print(self.validation_step)
@@ -71,29 +71,16 @@ class FceuxNesEmulatorEnvironment:
                 time.sleep(self.sleep_amount)
         # Loop through each Line, and format
         line_index = 0
-        screen = []
-        scr_r = []
-        scr_g = []
-        scr_b = []
-        scr_x = []
+        ram = []
         for line in lines:
             if line_index != 0:
-                value = line.split()
-                # broke up input into 4 different channels
-                scr_r.append(int(value[0]))
-                scr_g.append(int(value[1]))
-                scr_b.append(int(value[2]))
-                scr_x.append(int(value[3]))
+                ram.append(int(line.split()[0]))
             line_index += 1
-        screen.append(scr_r)
-        screen.append(scr_g)
-        screen.append(scr_b)
-        screen.append(scr_x)
         # Close the File
         file.close()
         # Update and Return current State
         # Convert pixel data into tensor that will be accepted by Conv2d layer
-        self.state = torch.FloatTensor(screen).reshape(4, 28, 32).unsqueeze(0)
+        self.state = torch.FloatTensor(ram)
         return self.state
 
     def write_action(self):
@@ -254,22 +241,17 @@ class PolicyEstimator(torch.nn.Module):
         self.action_size = 8
         self.h1_size = 32
 
-        self.conv1 = torch.nn.Conv2d(4, 32, kernel_size=4, stride=2)
-        self.conv2 = torch.nn.Conv2d(32, 64, kernel_size=4, stride=1)
-        self.conv3 = torch.nn.Conv2d(64, 64, kernel_size=3, stride=1)
-
-        self.linear1 = torch.nn.Linear(64*8*10, 512)
-        self.linear2 = torch.nn.Linear(512, self.action_size)
+        self.linear1 = torch.nn.Linear(2048, 1024)
+        self.linear2 = torch.nn.Linear(1024, 512)
+        self.linear3 = torch.nn.Linear(512, 256)
+        self.linear4 = torch.nn.Linear(256, self.action_size)
 
     def forward(self, state):
-        state = torch.relu(self.conv1(state))
-        state = torch.relu(self.conv2(state))
-        state = torch.relu(self.conv3(state))
-
-        state = state.view(-1, 64*8*10)
-
         state = torch.relu(self.linear1(state))
-        action = torch.sigmoid(self.linear2(state))
+        state = torch.relu(self.linear2(state))
+        state = torch.relu(self.linear3(state))
+
+        action = torch.sigmoid(self.linear4(state))
         return action
 
 
@@ -281,23 +263,18 @@ class ValueEstimator(torch.nn.Module):
         self.state_size = 6*10
         self.h1_size = 32
 
-        self.conv1 = torch.nn.Conv2d(4, 32, kernel_size=4, stride=2)
-        self.conv2 = torch.nn.Conv2d(32, 64, kernel_size=4, stride=1)
-        self.conv3 = torch.nn.Conv2d(64, 64, kernel_size=3, stride=1)
-
-        self.linear1 = torch.nn.Linear(64 * 8 * 10, 512)
-        self.linear2 = torch.nn.Linear(512, 1)
+        self.linear1 = torch.nn.Linear(2048, 1024)
+        self.linear2 = torch.nn.Linear(1024, 512)
+        self.linear3 = torch.nn.Linear(512, 256)
+        self.linear4 = torch.nn.Linear(256, 1)
 
     def forward(self, state):
-        state = torch.relu(self.conv1(state))
-        state = torch.relu(self.conv2(state))
-        state = torch.relu(self.conv3(state))
-
-        state = state.view(-1, 64 * 8 * 10)
+        state = torch.relu(self.linear1(state))
+        state = torch.relu(self.linear2(state))
 
         #state = torch.relu(self.linear1(state))
-        h1 = self.linear1(state).clamp(min=0)
-        value = self.linear2(h1)
+        h1 = self.linear3(state).clamp(min=0)
+        value = self.linear4(h1)
         return value
 
 def toAction(actionProp):
@@ -441,7 +418,7 @@ def actor_critic(device="cpu"):
                 if np.random.uniform() < random_chance:
                     action = torch.FloatTensor(8).uniform_(0, 1).detach()
                 else:
-                    action = action_probs[0]
+                    action = action_probs
                 print(action)
                 true_act = toAction(action)
                 next_state, reward, done, _ = fenv.step(true_act)
@@ -463,7 +440,7 @@ def actor_critic(device="cpu"):
                 value_optimizer.step()
 
                 action_prob = 1.0
-                for act in action_probs[0]:
+                for act in action_probs:
                     if act > 0.5:
                         action_prob = action_prob * act
                     else:
@@ -544,7 +521,7 @@ def draw_policy(name, policy_model, value_model, device="cpu"):
 
 
 if __name__ == "__main__":
-    file = open("screen.txt", "w")
+    file = open("ram.txt", "w")
     file.write('0')
     # Close the File
     file.close()
@@ -555,7 +532,7 @@ if __name__ == "__main__":
     #reinforce()
     #fenv = FceuxNesEmulatorEnvironment()
     #pnet = PolicyEstimator()
-    #print(fenv.read_state())
+    #print(fenv.read_state().shape)
     #print(torch.FloatTensor(8).uniform_(0, 1).detach())
     #print(toAction(pnet(fenv.read_state())))
     actor_critic()
