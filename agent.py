@@ -46,7 +46,8 @@ class FceuxNesEmulatorEnvironment:
         self.load_rom = 'none'
         self.load_state = save_state
         temp = self.write_action()
-        os.remove("variables.txt")
+        if os.path.isfile("variables.txt"):
+            os.remove("variables.txt")
         return temp
 
     def step(self, action):
@@ -141,7 +142,9 @@ class FceuxNesEmulatorEnvironment:
                 else:
                     file.close()
                     time.sleep(self.sleep_amount)
+                    print("test2")
             else:
+                print("test")
                 time.sleep(self.sleep_amount)
         # Set Default Return Values
         reward = 0
@@ -491,9 +494,9 @@ def actor_critic(device="cpu"):
                 print("Saving model...")
                 torch.save(policy_estimator.state_dict(), save_path + "policy_estimator")
                 torch.save(value_estimator.state_dict(), save_path + "value_estimator")
-                draw_policy("actor_critic_{}".format(i), policy_estimator, value_estimator, device=device)
+                #draw_policy("actor_critic_{}".format(i), policy_estimator, value_estimator, device=device)
 
-    draw_policy("actor_critic_final", policy_estimator, value_estimator, device=device)
+    #draw_policy("actor_critic_final", policy_estimator, value_estimator, device=device)
 
 
 def normalized(a, axis=-1, order=2):
