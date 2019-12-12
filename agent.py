@@ -93,7 +93,8 @@ class FceuxNesEmulatorEnvironment:
             line_index += 1
         # Close the File
         file.close()
-        os.remove("ram.txt")
+        if os.path.isfile("ram.txt"):
+            os.remove("ram.txt")
         # Update and Return current State
         # Convert pixel data into tensor that will be accepted by Conv2d layer
         self.state = torch.FloatTensor(ram)
@@ -173,7 +174,8 @@ class FceuxNesEmulatorEnvironment:
             line_index += 1
         # Close the File
         file.close()
-        os.remove("variables.txt")
+        if os.path.isfile("variables.txt"):
+            os.remove("variables.txt")
         # Apply reward based on Score Increase
         reward += (self.score - previous_score) * self.score_multiplier
         # Apply Transactional Penalty

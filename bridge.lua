@@ -199,6 +199,18 @@ function getMemoryValues()
 	return rTable
 end
 
+function exists(file)
+   local ok, err, code = os.rename(file, file)
+   if not ok then
+      if code == 13 then
+         -- Permission denied, but it exists
+         return true
+      end
+   end
+   return ok, err
+end
+
+
 -- Initialize Variables
 -- How many frames have been advanced
 timeStep = 0
@@ -234,9 +246,15 @@ while true do
 		-- Read the screen's pixels and write to file
 		print('Write to Files')
 		writeFile('ramTemp.txt', RAMdump(), 1, timeStep)
+		if exists('ram.txt') then
+			os.remove('ram.txt')
+		end
 		os.rename('ramTemp.txt', 'ram.txt')
 		--writeFile('screen.txt', getScreenTable(), 4, timeStep)
 		writeFile('variablesTemp.txt', getMemoryValues(), 2, timeStep)
+		if exists('variables.txt') then
+			os.remove('variables.txt')
+		end
 		os.rename('variablesTemp.txt', 'variables.txt')
 	end
 end
