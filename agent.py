@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import itertools
 import os
 import time
+import subprocess
+
 
 class FceuxNesEmulatorEnvironment:
     def __init__(self, rom='none', save_state='none', initial_step=0):
@@ -546,8 +548,11 @@ def draw_policy(name, policy_model, value_model, device="cpu"):
 
 
 if __name__ == "__main__":
-    # path = os.path.dirname(os.path.abspath(__file__))
-    # os.system(path + "/fceux-2.2.3-win32/fceux.exe")
+    path = os.path.dirname(os.path.abspath(__file__))
+    # rom_path = '/rom/Pac-Man (U) [!].nes'
+    subprocess.Popen([path + "/fceux-2.2.3-win32/fceux.exe"])
+    # subprocess.Popen(['fceux C:/Users/Owner/Documents/GitHub/NNES-Player/roms/Pac-Man (U) [!].nes'])
+    # subprocess.Popen('fceux -lua bridge.lua', info=False)
     #file = open("ram.txt", "w")
     #file.write('0')
     # Close the File
