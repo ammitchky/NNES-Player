@@ -103,7 +103,7 @@ end
 
 -- Convert ASCII number to Decimal number
 function processNumberASCII(ascii)
-	if ascii > 48 and ascii < 58 then
+	if ascii >= 48 and ascii < 58 then
 		return ascii - 48
 	else
 		return nil
@@ -175,11 +175,11 @@ function getMemoryValues()
 	
 	-- GAME OVER
 	table.insert(rTable, 'GAME_OVER')
-	if invalid_score then
-		table.insert(rTable, 'true')
-	else
+	--if invalid_score then
+		--table.insert(rTable, 'true')
+	--else
 		table.insert(rTable, 'false')
-	end
+	--end
 	
 	-- VICTORY
 	table.insert(rTable, 'VICTORY')
