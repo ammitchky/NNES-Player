@@ -51,7 +51,6 @@ function readInputFile(fileName, stepNum)
 	else
 		return nil
 	end
-	
 	return {commandTable, inputTable}
 end
 
@@ -87,6 +86,17 @@ function getScreenTable()
 			table.insert(rTable, b)
 			table.insert(rTable, palette)
 		end
+	end
+	return rTable
+end
+
+-- Find entirety of games RAM
+function RAMdump()
+	local rTable = {}
+	local ramMin = 0x0000
+	local ramMax = 0x07FF
+	for address=ramMin, ramMax, 1 do
+		table.insert(rTable, memory.readbyte(address))
 	end
 	return rTable
 end
@@ -207,6 +217,7 @@ while true do
 		
 		-- Read the screen's pixels and write to file
 		print('Write to Files')
+		writeFile('ram.txt', RAMdump(), 1, timeStep)
 		writeFile('screen.txt', getScreenTable(), 4, timeStep)
 		writeFile('variables.txt', getMemoryValues(), 2, timeStep)
 	end
