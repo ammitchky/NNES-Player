@@ -15,10 +15,10 @@ class FceuxNesEmulatorEnvironment:
         self.time_step = 0
         self.max_step = 1000
         # What is the reward and penalty for each step, failure, and success?
-        self.transaction_penalty = -1.0
+        self.transaction_penalty = 0.0
         self.fail_penalty = -250.0
         self.goal_reward = 0.0
-        self.score_multiplier = 1.0
+        self.score_multiplier = 2.0
         self.timeout_penalty = 0.0
         # Specifies which ROM and/or save state should be loaded next frame.
         self.load_rom = rom
@@ -42,6 +42,7 @@ class FceuxNesEmulatorEnvironment:
     def reset(self, save_state='1'):
         # Reset State and return the Initial State
         self.time_step = 0
+        self.score = 0
         self.action = self.no_action
         self.load_rom = 'none'
         self.load_state = save_state
