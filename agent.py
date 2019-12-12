@@ -32,7 +32,7 @@ class FceuxNesEmulatorEnvironment:
         # Used as a timestamp to validate text files
         self.validation_step = initial_step
         # Amount of time to delay between each check of a txt File
-        self.sleep_amount = 0.1
+        self.sleep_amount = 0.01
         # Up-to-date In-Game Score (Points)
         self.score = 0
         # Load specified state & action
@@ -62,7 +62,6 @@ class FceuxNesEmulatorEnvironment:
         # Wait until File is Updated
         while not updated:
             # Open the File
-            time.sleep(self.sleep_amount)
             file = open("ram.txt", "r")
             # Make List out of Lines of File
             lines = file.readlines()
@@ -116,7 +115,6 @@ class FceuxNesEmulatorEnvironment:
         # Wait until File is Updated
         while not updated:
             # Open the File
-            time.sleep(self.sleep_amount)
             file = open("variables.txt", "r")
             # Make List out of Lines of File
             lines = file.readlines()
@@ -522,6 +520,8 @@ def draw_policy(name, policy_model, value_model, device="cpu"):
 
 
 if __name__ == "__main__":
+    # path = os.path.dirname(os.path.abspath(__file__))
+    # os.system(path + "/fceux-2.2.3-win32/fceux.exe")
     file = open("ram.txt", "w")
     file.write('0')
     # Close the File
@@ -536,4 +536,4 @@ if __name__ == "__main__":
     #print(fenv.read_state().shape)
     #print(torch.Tensor(1).random_(0, 255).detach()[0])
     #print(toAction(cat.Categorical(pnet(fenv.read_state())).sample().detach()))
-    actor_critic()
+    actor_critic(device="cuda")

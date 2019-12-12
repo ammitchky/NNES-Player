@@ -47,6 +47,9 @@ function readInputFile(fileName, stepNum)
 			end
 			lineNum = lineNum + 1
 		end
+		if lineNum < 10 then
+			return nil
+		end
 		io.close(file)
 	else
 		return nil
