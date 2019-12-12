@@ -63,7 +63,7 @@ class FceuxNesEmulatorEnvironment:
             # Make List out of Lines of File
             lines = file.readlines()
             print(self.validation_step)
-            if int(lines[0]) >= self.validation_step:
+            if lines is not False and int(lines[0]) >= self.validation_step:
                 updated = True
             else:
                 print("Not Updated")
@@ -128,7 +128,7 @@ class FceuxNesEmulatorEnvironment:
             file = open("variables.txt", "r")
             # Make List out of Lines of File
             lines = file.readlines()
-            if int(lines[0]) >= self.validation_step:
+            if lines is not False and int(lines[0]) >= self.validation_step:
                 updated = True
             else:
                 file.close()
