@@ -45,7 +45,9 @@ class FceuxNesEmulatorEnvironment:
         self.action = self.no_action
         self.load_rom = 'none'
         self.load_state = save_state
-        return self.write_action()
+        temp = self.write_action()
+        os.remove("variables.txt")
+        return temp
 
     def step(self, action):
         # Perform Action and Get State
@@ -62,15 +64,24 @@ class FceuxNesEmulatorEnvironment:
         # Wait until File is Updated
         while not updated:
             # Open the File
-            file = open("ram.txt", "r")
-            # Make List out of Lines of File
-            lines = file.readlines()
-            print(self.validation_step)
-            if lines and int(lines[0]) >= self.validation_step:
-                updated = True
+            #time.sleep(0.04)
+            if os.path.isfile("ram.txt"):
+                try:
+                    file = open("ram.txt", "r")
+                except PermissionError:
+                    print("minor issue, try again")
+                    continue
+                # Make List out of Lines of File
+                lines = file.readlines()
+                print(self.validation_step)
+                if lines and int(lines[0]) >= self.validation_step:
+                    updated = True
+                else:
+                    print("Not Updated")
+                    file.close()
+                    time.sleep(self.sleep_amount)
             else:
                 print("Not Updated")
-                file.close()
                 time.sleep(self.sleep_amount)
         # Loop through each Line, and format
         line_index = 0
@@ -81,6 +92,7 @@ class FceuxNesEmulatorEnvironment:
             line_index += 1
         # Close the File
         file.close()
+        os.remove("ram.txt")
         # Update and Return current State
         # Convert pixel data into tensor that will be accepted by Conv2d layer
         self.state = torch.FloatTensor(ram)
@@ -115,13 +127,21 @@ class FceuxNesEmulatorEnvironment:
         # Wait until File is Updated
         while not updated:
             # Open the File
-            file = open("variables.txt", "r")
-            # Make List out of Lines of File
-            lines = file.readlines()
-            if lines and int(lines[0]) >= self.validation_step:
-                updated = True
+            #time.sleep(0.04)
+            if os.path.isfile("variables.txt"):
+                try:
+                    file = open("variables.txt", "r")
+                except PermissionError:
+                    print("minor issue, try again")
+                    continue
+                # Make List out of Lines of File
+                lines = file.readlines()
+                if lines and int(lines[0]) >= self.validation_step:
+                    updated = True
+                else:
+                    file.close()
+                    time.sleep(self.sleep_amount)
             else:
-                file.close()
                 time.sleep(self.sleep_amount)
         # Set Default Return Values
         reward = 0
@@ -150,6 +170,7 @@ class FceuxNesEmulatorEnvironment:
             line_index += 1
         # Close the File
         file.close()
+        os.remove("variables.txt")
         # Apply reward based on Score Increase
         reward += (self.score - previous_score) * self.score_multiplier
         # Apply Transactional Penalty
@@ -522,14 +543,14 @@ def draw_policy(name, policy_model, value_model, device="cpu"):
 if __name__ == "__main__":
     # path = os.path.dirname(os.path.abspath(__file__))
     # os.system(path + "/fceux-2.2.3-win32/fceux.exe")
-    file = open("ram.txt", "w")
-    file.write('0')
+    #file = open("ram.txt", "w")
+    #file.write('0')
     # Close the File
-    file.close()
-    file = open("variables.txt", "w")
-    file.write('0')
+    #file.close()
+    #file = open("variables.txt", "w")
+    #file.write('0')
     # Close the File
-    file.close()
+    #file.close()
     #reinforce()
     #fenv = FceuxNesEmulatorEnvironment()
     #pnet = PolicyEstimator()
