@@ -106,7 +106,7 @@ function processNumberASCII(ascii)
 	if ascii > 48 and ascii < 58 then
 		return ascii - 48
 	else
-		return 0
+		return nil
 	end	
 end
 
@@ -115,7 +115,11 @@ function memorySum(bias, mult, address, iterations, delta)
 	local total = bias
 	iterations = iterations - 1
 	for i=0,iterations do
-		total = total + (processNumberASCII(memory.readbyte(address)) * mult)
+		number = processNumberASCII(memory.readbyte(address))
+		if number == nil then
+			return nil
+		end
+		total = total + (number * mult)
 		address = address + 1
 		mult = mult * delta
 	end
@@ -158,15 +162,24 @@ function getMemoryValues()
 	
 	-- SCORE
 	local score = -1
+	local invalid_score = false
 	if game_name == "Pac-Man" then
 		score = memorySum(0, 100000, 0x0240, 5, .1)
+	end
+	if score == nil then
+		invalid_score = true
+		score = 0
 	end
 	table.insert(rTable, 'SCORE')
 	table.insert(rTable, score)
 	
 	-- GAME OVER
 	table.insert(rTable, 'GAME_OVER')
-	table.insert(rTable, 'false')
+	if invalid_score then
+		table.insert(rTable, 'true')
+	else
+		table.insert(rTable, 'false')
+	end
 	
 	-- VICTORY
 	table.insert(rTable, 'VICTORY')
@@ -208,7 +221,7 @@ while true do
 			print("Load ROM: " .. (inputTable[1])['rom'])
 		end
 		if (inputTable[1])['state'] ~= "none" and (inputTable[1])['state'] ~= nil then
-			savestate.load(savestate.create(tonumber((inputTable[1])['state'])))
+			savestate.load(savestate.create(tonumber((inputTable[1])['state']) + 1))
 			print("Load State: " .. (inputTable[1])['state'])
 		end
 		
