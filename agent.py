@@ -25,7 +25,7 @@ class FceuxNesEmulatorEnvironment:
         # Repeatedly used action settings
         self.no_action = ['false', 'false', 'false', 'false', 'false', 'false', 'false', 'false']
         # The core features of the current step, used by the NN
-        self.action = []
+        self.action = self.no_action
         self.state = None
         self.reward = 0
         # Used as a timestamp to validate text files
@@ -35,7 +35,7 @@ class FceuxNesEmulatorEnvironment:
         # Up-to-date In-Game Score (Points)
         self.score = 0
         # Load specified state & action
-        #self.write_action()
+        self.write_action()
 
 
     def reset(self, save_state='1'):
@@ -66,6 +66,7 @@ class FceuxNesEmulatorEnvironment:
             if int(lines[0]) >= self.validation_step:
                 updated = True
             else:
+                print("Not Updated")
                 file.close()
                 time.sleep(self.sleep_amount)
         # Loop through each Line, and format
@@ -127,7 +128,7 @@ class FceuxNesEmulatorEnvironment:
             file = open("variables.txt", "r")
             # Make List out of Lines of File
             lines = file.readlines()
-            if int(lines[0]) > self.validation_step:
+            if int(lines[0]) >= self.validation_step:
                 updated = True
             else:
                 file.close()
@@ -543,6 +544,14 @@ def draw_policy(name, policy_model, value_model, device="cpu"):
 
 
 if __name__ == "__main__":
+    file = open("screen.txt", "w")
+    file.write('0')
+    # Close the File
+    file.close()
+    file = open("variables.txt", "w")
+    file.write('0')
+    # Close the File
+    file.close()
     #reinforce()
     #fenv = FceuxNesEmulatorEnvironment()
     #pnet = PolicyEstimator()

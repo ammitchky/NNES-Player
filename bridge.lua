@@ -13,25 +13,43 @@ function readInputFile(fileName, stepNum)
 				currentStep = tonumber(line)
 				if currentStep < stepNum then
 					return nil
+				else
+					print('Updated File! Fetching Input (Step #' .. stepNum .. ')')
+				end
 			elseif lineNum < 10 then
-				if line == 'false' then value = false else value = true end
-				elseif lineNum == 2 then inputTable['A'] = value
-				elseif lineNum == 3 then inputTable['up'] = value
-				elseif lineNum == 4 then inputTable['left'] = value
-				elseif lineNum == 5 then inputTable['B'] = value
-				elseif lineNum == 6 then inputTable['select'] = value
-				elseif lineNum == 7 then inputTable['right'] = value
-				elseif lineNum == 8 then inputTable['down'] = value
-				elseif lineNum == 9 then inputTable['start'] = value end
+				if line == 'false' then 
+					value = false 
+				else 
+					value = true 
+				end
+				if lineNum == 2 then 
+					inputTable['A'] = value
+				elseif lineNum == 3 then 
+					inputTable['up'] = value
+				elseif lineNum == 4 then 
+					inputTable['left'] = value
+				elseif lineNum == 5 then 
+					inputTable['B'] = value
+				elseif lineNum == 6 then 
+					inputTable['select'] = value
+				elseif lineNum == 7 then 
+					inputTable['right'] = value
+				elseif lineNum == 8 then 
+					inputTable['down'] = value
+				elseif lineNum == 9 then 
+					inputTable['start'] = value end
 			else
-				if lineNum == 10 then commandTable['state'] = line 
-				elseif lineNum == 11 then commandTable['rom'] = line end
+				if lineNum == 10 then 
+					commandTable['state'] = line 
+				elseif lineNum == 11 then 
+					commandTable['rom'] = line 
+				end
 			end
 			lineNum = lineNum + 1
 		end
 		io.close(file)
 	else
-		print('Nil Input File!')
+		return nil
 	end
 	
 	return {commandTable, inputTable}
@@ -171,23 +189,25 @@ while true do
 		-- Input File not updated
 	else
 		-- Apply Joypad Input, Advance Time Step,
+		print(inputTable[2])
 		joypad.set(controllerPort, inputTable[2])
 		timeStep = timeStep + 1
 		-- Load State and/or ROM if specified
-		if (inputTable[1])['rom'] ~= "none" then
+		if (inputTable[1])['rom'] ~= "none" and (inputTable[1])['rom'] ~= nil then
 			--os.execute()
 			print("Load ROM: " .. (inputTable[1])['rom'])
 		end
-		if (inputTable[1])['state'] ~= "none" then
+		if (inputTable[1])['state'] ~= "none" and (inputTable[1])['state'] ~= nil then
 			savestate.load(savestate.create(tonumber((inputTable[1])['state'])))
 			print("Load State: " .. (inputTable[1])['state'])
 		end
+		
+		-- Advance the Frame
+		emu.frameadvance()
+		
+		-- Read the screen's pixels and write to file
+		print('Write to Files')
+		writeFile('screen.txt', getScreenTable(), 4, timeStep)
+		writeFile('variables.txt', getMemoryValues(), 2, timeStep)
 	end
-	
-	-- Read the screen's pixels and write to file
-	writeFile('screen.txt', getScreenTable(), 4, timeStep)
-	writeFile('variables.txt', getMemoryValues(), 2, timeStep)
-
-	-- Advance the Frame
-	emu.frameadvance()
 end
