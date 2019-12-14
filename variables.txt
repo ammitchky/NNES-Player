@@ -1,6 +1,0 @@
-95
-GAME_ID ffffffffffffffffffffffffffffffff 
-GAME_NAME Pac-Man 
-SCORE 80 
-GAME_OVER false 
-VICTORY false 

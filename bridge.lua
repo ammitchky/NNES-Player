@@ -216,7 +216,7 @@ end
 timeStep = 0
 -- Which Controller to Write to
 controllerPort = 1
-repeat_amount = 10
+repeat_amount = 5
 
 -- Main Loop
 while true do
